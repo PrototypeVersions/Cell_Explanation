@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f3ee">
+  <meta name="description" content="Step inside an interactive 3D cell. Explore its structures, follow a protein, and discover the mechanism behind the answer. An original learning concept by Blake Myers.">
+  <title>Inside the Answer — An interactive cell atlas</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+  <a class="skip-link" href="#inspector">Skip to learning content</a>
+  <header class="header">
+    <a class="brand" href="#explore" aria-label="Inside the Answer, home">
+      <svg viewBox="0 0 44 44" aria-hidden="true"><path d="M37 22c0 9-6 15-15 15S6 31 7 22 13 6 22 7s15 6 15 15Z"/><ellipse cx="22" cy="22" rx="8" ry="11" transform="rotate(-34 22 22)"/><circle cx="22" cy="22" r="3"/></svg>
+      <span>INSIDE THE ANSWER<small>A CELLULAR LEARNING EXPERIENCE</small></span>
+    </a>
+    <nav class="mode-nav" aria-label="Learning mode">
+      <button data-mode="explore" class="active" aria-pressed="true"><span class="nav-number">01</span> Explore</button>
+      <button data-mode="process" aria-pressed="false"><span class="nav-number">02</span> Follow a protein</button>
+      <button data-mode="challenge" aria-pressed="false"><span class="nav-number">03</span> Solve a case</button>
+    </nav>
+    <button class="icon-button sources-button" id="sources-open" aria-label="Sources and model notes" title="Sources and model notes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6a3 3 0 0 1 2 1 3 3 0 0 1 2-1h6v15h-6a3 3 0 0 0-2 1 3 3 0 0 0-2-1H4Z"/><path d="M12 5v15"/></svg><span>Field notes</span></button>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <aside class="inspector" id="inspector" aria-label="Learning content" tabindex="-1"></aside>
+    <section class="visual" id="visual" aria-label="Interactive three-dimensional animal cell">
+      <div class="visual-top"><span class="specimen-label"><i></i> ANIMAL CELL <span>/</span> 3D ATLAS</span><button id="help-open" class="help-button" aria-label="How to use this experience">?</button></div>
+      <div id="scene" class="scene" role="img" aria-label="A three-dimensional animal cell. Drag to rotate, scroll to zoom. All structures are also selectable in the learning panel."></div>
+      <div class="loading" id="loading"><span></span><p>Building a world within.</p><small>Preparing the cell atlas</small></div>
+      <div class="renderer-error" id="renderer-error" hidden><img src="./fallback.svg" alt="Schematic animal cell with nucleus, rough ER, Golgi, mitochondria and lysosomes"><p>The 3D view needs WebGL 2. Try a current browser with graphics acceleration enabled. You can still explore the learning content.</p></div>
+      <div class="scene-labels" id="scene-labels" aria-hidden="true"></div>
+      <div class="hover-label" id="hover-label" hidden></div>
+      <div class="view-caption" id="view-caption"><span class="caption-line"></span><span>One cell.<br><strong>Everything connected.</strong></span></div>
+      <div class="context-badge" id="context-badge" hidden></div>
+      <div class="orientation"><span class="axis axis-y">Y</span><span class="axis axis-z">Z</span><span class="axis axis-x">X</span><svg viewBox="0 0 60 60" aria-hidden="true"><path d="M28 34V10M28 34l21 11M28 34 9 46"/></svg></div>
+      <div class="view-tools" aria-label="Model controls">
+        <div class="view-segment" role="group" aria-label="Cell presentation"><button data-view="cutaway" class="active" aria-pressed="true">Cutaway</button><button data-view="whole" aria-pressed="false">Whole cell</button><button data-view="exploded" aria-pressed="false">Separate</button></div>
+        <span class="tool-divider"></span>
+        <button id="labels-toggle" class="tool-button active" aria-pressed="true" title="Toggle labels"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h7l7 7-6 6-7-7Z"/><circle cx="7" cy="8" r="1"/></svg><span>Labels</span></button>
+        <button id="rotate-toggle" class="tool-button" aria-pressed="false" title="Automatic rotation"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7a7 7 0 1 0 0 7M16 3v4h-4"/></svg><span>Orbit</span></button>
+        <button id="reset-view" class="tool-button" title="Reset view" aria-label="Reset view"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3 9 7-6 7 6M5 8v9h10V8M8 17v-6h4v6"/></svg></button>
+        <button id="fullscreen-toggle" class="tool-button fullscreen-button" title="Fullscreen" aria-label="Toggle fullscreen"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4"/></svg></button>
+      </div>
+      <div class="gesture-hint" id="gesture-hint"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 8-3 3 3 3m12-6 3 3-3 3M1 11h18"/></svg> Drag to orbit <span>·</span> Scroll to get closer <span>·</span> Select a structure</div>
+    </section>
+    <section class="story-dock" id="story-dock" aria-label="Learning sequence"></section>
+  </main>
+  <footer class="footer"><span>An original learning concept by <strong>Blake Myers</strong></span><span>Explore the structure. Understand the mechanism.</span><button id="notes-open">Sources & model notes <span>↗</span></button></footer>
+  <div class="toast" role="status" id="toast"></div>
+
+  <dialog id="notes-dialog" class="notes-dialog">
+    <button class="dialog-close icon-button" data-close aria-label="Close notes">×</button>
+    <span class="eyebrow">THE FIELD NOTES</span><h2>Built for understanding.</h2>
+    <p>This original interactive prototype connects spatial anatomy, protein trafficking, and exam-style reasoning. Concept and direction by Blake Myers. It is independent of UWorld and uses no UWorld questions or artwork.</p>
+    <h3>What the model represents</h3>
+    <p>A schematic animal cell. Shapes, positions, quantities, sizes, and timing are adjusted for visibility. The cell is not a reconstruction of microscopy, and the routes are teaching paths rather than measured molecular trajectories.</p>
+    <p>The secreted-protein sequence shows a generic constitutive secretory route. The lysosomal sequence follows a soluble, M6P-dependent hydrolase through the Golgi and an endosome to the lysosome. Not all lysosomal proteins use this targeting route. Nuclear transcription and mRNA export precede the displayed sequence.</p>
+    <p>M6P formation is a two-step modification: GlcNAc-1-phosphotransferase initiates the signal, and an uncovering enzyme exposes M6P. The model groups these steps as “address tagging.” ER–Golgi intermediate compartments, receptor recycling, coat dynamics, and many other processes are omitted. I-cell disease has tissue-specific effects; the illustrated mechanism emphasizes fibroblast enzyme mistargeting.</p>
+    <p>The normal and disrupted states are qualitative teaching scenarios. No simulated quantities or animation timings represent patient measurements. Cases are fictional and intended for education.</p>
+    <h3>Scientific sources</h3>
+    <ol class="source-list">
+      <li><a href="https://medlineplus.gov/genetics/condition/mucolipidosis-ii-alpha-beta/" target="_blank" rel="noopener">MedlinePlus Genetics — Mucolipidosis II alpha/beta ↗</a><span>GNPTAB, M6P tagging, enzyme mistargeting, and the clinical phenotype.</span></li>
+      <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2733771/" target="_blank" rel="noopener">Dahms et al. — Strategies for carbohydrate recognition by the mannose 6-phosphate receptors ↗</a><span>M6P formation, receptor recognition, endosomal delivery, and sorting defects.</span></li>
+      <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3552504/" target="_blank" rel="noopener">Lord et al. — The highly conserved COPII coat complex ↗</a><span>Cargo selection and export from the endoplasmic reticulum.</span></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK9838/" target="_blank" rel="noopener">Cooper, The Cell — The Golgi apparatus ↗</a><span>Golgi processing and the branching destinations of secretory-pathway proteins.</span></li>
+    </ol>
+    <h3>Interaction & accessibility</h3><p>Every selectable structure is available as a keyboard-accessible button. Use the playback slider to inspect the pathway without animation. The experience respects reduced-motion preferences. Your challenge progress stays in this browser.</p>
+    <p class="fine-print">Original procedural 3D geometry. Three.js, MIT license. No account, microphone, or external AI service is used.</p>
+  </dialog>
+  <dialog id="help-dialog" class="help-dialog"><button class="dialog-close icon-button" data-close aria-label="Close help">×</button><span class="eyebrow">A WORLD YOU CAN EXPLORE</span><h2>Go beyond the diagram.</h2><div class="help-grid"><div><b>01 / Explore</b><p>Drag to orbit. Scroll or pinch to zoom. Select a structure in the cell or the panel. Open its cutaway to look inside.</p></div><div><b>02 / Follow a protein</b><p>Play or scrub a journey. Switch the destination. Introduce a defect and compare the consequences.</p></div><div><b>03 / Solve a case</b><p>Make a prediction first. Then follow the mechanism that explains the answer.</p></div></div><p class="fine-print">Shortcuts: 1–3 switch modes · L toggles labels · R resets the view · Space plays or pauses a pathway. Shortcuts pause while typing or when a dialog is open.</p><button class="primary-button" data-close>Start exploring <span>↗</span></button></dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
