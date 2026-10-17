@@ -6,9 +6,15 @@ import {structures,stageFor} from './content.js';
 const TAU=Math.PI*2;
 const vec=(x,y,z)=>new THREE.Vector3(x,y,z);
 let seed=92817;
+let surfaceTexture=null;
+function makeSurfaceTexture(){
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const ctx=canvas.getContext('2d');const image=ctx.createImageData(128,128);let grain=47;
+ for(let i=0;i<image.data.length;i+=4){grain=(grain*1664525+1013904223)>>>0;const v=115+(grain>>>24)*.1;image.data[i]=image.data[i+1]=image.data[i+2]=v;image.data[i+3]=255;}
+ ctx.putImageData(image,0,0);const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(5,5);return texture;
+}
 function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
-function material(color,extra={}){return new THREE.MeshPhysicalMaterial({color,roughness:.38,metalness:0,clearcoat:.35,clearcoatRoughness:.4,...extra});}
-function mesh(geometry,mat,parent,position){const m=new THREE.Mesh(geometry,mat);if(position)m.position.set(...position);parent.add(m);return m;}
+function material(color,extra={}){return new THREE.MeshPhysicalMaterial({color:new THREE.Color(color).offsetHSL(0,.065,-.035),roughness:.43,metalness:0,clearcoat:.24,clearcoatRoughness:.32,bumpMap:surfaceTexture,bumpScale:.035,...extra});}
+function mesh(geometry,mat,parent,position){const m=new THREE.Mesh(geometry,mat);m.receiveShadow=!mat.transparent;m.castShadow=!mat.transparent&&(geometry.type==='BufferGeometry'||(geometry.type==='SphereGeometry'&&geometry.parameters.radius>=.45));if(position)m.position.set(...position);parent.add(m);return m;}
 function tube(points,radius,mat,parent,closed=false,segments=64){const curve=new THREE.CatmullRomCurve3(points,false,'catmullrom',.45);const m=mesh(new THREE.TubeGeometry(curve,segments,radius,8,closed),mat,parent);return m;}
 function ellipse(rx,rz,y=0,n=90){return Array.from({length:n+1},(_,i)=>{const a=i/n*TAU;return vec(Math.cos(a)*rx,y,Math.sin(a)*rz);});}
 function surface(fn,nu=60,nv=12,thickness=.055){
@@ -35,12 +41,14 @@ export class CellScene{
   this.scene=new THREE.Scene();this.camera=new THREE.PerspectiveCamera(35,1,.1,120);this.camera.position.set(12.8,11.2,16.5);
   this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.target.set(0,.15,0);this.controls.enableDamping=true;this.controls.dampingFactor=.07;this.controls.minDistance=3.8;this.controls.maxDistance=36;this.controls.maxPolarAngle=Math.PI*.94;this.controls.enablePan=true;this.controls.panSpeed=.65;this.controls.autoRotateSpeed=.6;this.controls.zoomSpeed=.65;
   this.homePosition=this.camera.position.clone();this.homeTarget=this.controls.target.clone();this.controls.update();
-  this.renderer.toneMappingExposure=.85;
-  this.scene.environmentIntensity=.55;
-  this.scene.add(new THREE.HemisphereLight(0xfff9ee,0x788794,.75));
-  const key=new THREE.DirectionalLight(0xfff5e9,2.1);key.position.set(-5,12,8);this.scene.add(key);
-  const fill=new THREE.DirectionalLight(0xdde4ff,.65);fill.position.set(7,4,-6);this.scene.add(fill);
-  const rim=new THREE.DirectionalLight(0xffffff,.7);rim.position.set(-7,2,-8);this.scene.add(rim);
+  this.renderer.toneMappingExposure=.90;
+  this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.shadowMap.autoUpdate=false;this.renderer.shadowMap.needsUpdate=true;
+  surfaceTexture=makeSurfaceTexture();
+  this.scene.environmentIntensity=.32;
+  this.scene.add(new THREE.HemisphereLight(0xfff9ee,0x596879,.38));
+  const key=new THREE.DirectionalLight(0xfff3e5,3.0);key.position.set(-4,10,7);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-11,right:11,top:10,bottom:-10,near:1,far:35});key.shadow.bias=-.0002;key.shadow.normalBias=.035;key.shadow.radius=3;this.scene.add(key);
+  const fill=new THREE.DirectionalLight(0xcbdcff,.55);fill.position.set(7,4,-6);this.scene.add(fill);
+  const rim=new THREE.DirectionalLight(0xe5eaff,1.7);rim.position.set(-7,2,-8);this.scene.add(rim);
   const pmrem=new THREE.PMREMGenerator(this.renderer);const room=new RoomEnvironment();this.environment=pmrem.fromScene(room,.04);this.scene.environment=this.environment.texture;room.dispose();pmrem.dispose();
   this.root=new THREE.Group();this.scene.add(this.root);this.createCell();this.createRoutes();this.createShadow();this.createLabels();this.raycaster=new THREE.Raycaster();this.pointer=new THREE.Vector2();this.bindEvents();this.resize();this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);this.animate=this.animate.bind(this);this.frame=requestAnimationFrame(this.animate);
  }
@@ -56,6 +64,7 @@ export class CellScene{
   this.upperMembrane=mesh(new THREE.SphereGeometry(1,90,45,0,TAU,0,Math.PI/2),this.membraneMat.clone(),g);this.upperMembrane.scale.set(6.05,2.35,4.65);this.upperMembrane.material.opacity=.16;this.upperMembrane.visible=false;
   const rimMat=material('#a5bcc3',{transparent:true,opacity:.64,roughness:.3});this.membraneRim=tube(ellipse(6.05,4.65),.048,rimMat,g,true,128);this.innerRim=tube(ellipse(5.96,4.57,-.04),.025,material('#e1e6dd',{transparent:true,opacity:.8}),g,true,128);
   // The bilayer is represented schematically by two rims, not by molecular scale.
+  g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.material.bumpMap=null;}});
   this.register('membrane',g,23);
   this.createNucleus();this.createRoughER();this.createSmoothER();this.createGolgi();this.createMitochondria();this.createEndosome();this.createLysosome();this.createCytoskeleton();this.createCytoplasmDetails();
  }
@@ -184,7 +193,7 @@ export class CellScene{
  reset(){this.selected=null;this.interior=false;this.view='cutaway';this.setView('cutaway');this.focus(null);this.labels.forEach(l=>l.button.classList.remove('active'));}
  setView(view){this.view=view;this.explosionTarget=view==='exploded'?1:0;this.upperMembrane.visible=view==='whole';this.membraneRim.visible=view!=='whole';this.innerRim.visible=view!=='whole';if(view==='exploded'){this.focus(null);this.cameraTween.to.multiplyScalar(1.1);}else if(!this.selected)this.focus(null);}
  setInterior(value){this.interior=value;}
- setLabels(value){document.getElementById('scene-labels').classList.toggle('labels-off',!value);}
+ setLabels(value){document.getElementById('scene-labels').hidden=!value;}
  setAutoRotate(value){this.cameraTween=null;this.controls.autoRotate=value;}
  setProcess(state){this.process={...state};this.routeGroup.visible=state.visible;if(!state.visible){this.lysoBody.scale.setScalar(1);this.debris.forEach((d,i)=>d.visible=i<9);}}
  updateRoutes(dt){
@@ -211,12 +220,16 @@ export class CellScene{
    const base=group.userData.base;let direction=base.clone();if(direction.length()<.2)direction.set(0,-1,0);direction.normalize();const amount=id==='membrane'?0:this.explosion*(id==='nucleus'?1.5:2.2);group.position.copy(base).addScaledVector(direction,amount);if(id!=='membrane')group.position.y+=this.explosion*.7;
    const dim=this.interior&&this.selected&&id!==this.selected&&id!=='membrane';
    group.traverse(o=>{if(!o.isMesh||!o.material)return;const mat=o.material;
-    if(dim){mat.transparent=true;mat.opacity=.13;mat.depthWrite=false;}else{mat.transparent=o.userData.originalTransparent;mat.opacity=o.userData.originalOpacity??1;mat.depthWrite=!mat.transparent;}
+    const nucleusInside=this.interior&&this.selected==='nucleus'&&o===this.nucleusShell;
+    const transparent=Boolean(dim||nucleusInside||o.userData.originalTransparent);
+    if(mat.transparent!==transparent){mat.transparent=transparent;mat.needsUpdate=true;}
+    mat.opacity=dim?.13:nucleusInside?.25:(o.userData.originalOpacity??1);mat.depthWrite=!transparent;
+    o.castShadow=!dim&&!nucleusInside&&!o.userData.originalTransparent&&id!=='membrane'&&(o.geometry.type==='BufferGeometry'||(o.geometry.type==='SphereGeometry'&&o.geometry.parameters.radius>=.45));
     if(mat.emissive){const active=id===this.selected;mat.emissive.set(active?structures.find(d=>d.id===id).color:0x000000);mat.emissiveIntensity=active?.045:0;}
    });
   }
   const inner=this.interior&&this.selected;
-  if(inner==='nucleus'){this.nucleusShell.material.transparent=true;this.nucleusShell.material.opacity=.25;this.nucleusShell.material.depthWrite=false;}
+  if(inner==='nucleus'){this.nucleusShell.material.transparent=true;this.nucleusShell.material.opacity=.25;this.nucleusShell.material.depthWrite=false;this.nucleusShell.castShadow=false;}
   this.mitoCaps.forEach(cap=>cap.visible=inner!=='mitochondria');
   this.golgiSacs.forEach(s=>{s.position.y=(s.userData.layer*.235-.5)+(inner==='golgi'?(s.userData.layer-2.5)*.17:0);});
  }
@@ -233,6 +246,6 @@ export class CellScene{
  animate(now){
   const dt=Math.min(.05,(now-this.last)/1000);this.last=now;this.clock+=dt;
   if(this.cameraTween){const t=this.cameraTween;const p=t.duration?Math.min(1,(now-t.start)/t.duration):1;const ease=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;this.camera.position.lerpVectors(t.from,t.to,ease);this.controls.target.lerpVectors(t.fromTarget,t.toTarget,ease);if(p>=1)this.cameraTween=null;}
-  this.explosion=THREE.MathUtils.damp(this.explosion,this.explosionTarget,5,dt);this.updateAppearance();this.updateRoutes(dt);this.controls.update();this.updateLabels();this.renderer.render(this.scene,this.camera);this.frame=requestAnimationFrame(this.animate);
+  this.explosion=THREE.MathUtils.damp(this.explosion,this.explosionTarget,5,dt);this.updateAppearance();this.updateRoutes(dt);const shadowState=[this.selected,this.interior,this.explosion.toFixed(3),this.lysoBody.scale.x.toFixed(2)].join('|');if(shadowState!==this.shadowState){this.renderer.shadowMap.needsUpdate=true;this.shadowState=shadowState;}this.controls.update();this.updateLabels();this.renderer.render(this.scene,this.camera);this.frame=requestAnimationFrame(this.animate);
  }
 }

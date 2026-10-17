@@ -1,4 +1,4 @@
-import {CellScene} from './scene.js';
+import {CellScene} from './scene.js?v=20261017-studio';
 import {structures,getSteps,stageFor,stageThresholds,stageNames,tourSteps,cases} from './content.js';
 
 const $=s=>document.querySelector(s);
@@ -32,7 +32,7 @@ function renderInspector(){
  inspector.scrollTop=0;
 }
 function renderExplore(){
- inspector.innerHTML=`<span class="eyebrow">01 / EXPLORE THE LIVING CELL</span><h1 class="intro-title">A small world.<br> <em>A deeper look.</em></h1><p class="intro-copy">Turn the cell. Open a structure. Discover how the parts become a working whole.</p><div class="section-label"><span>THE STRUCTURES</span><span>09</span></div><div class="structure-list">${structures.map(s=>`<button class="structure-button" data-structure="${s.id}"><span class="dot" style="background:${s.color}"></span><span><strong>${s.short}</strong><small>${s.role}</small></span><span class="structure-arrow" aria-hidden="true">↗</span></button>`).join('')}</div><button class="tour-invite" data-action="start-tour"><span><strong>Start with a guided introduction</strong><small>A few stops. A whole new perspective.</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 8 5 4-5 4Z"/></svg></button>`;
+ inspector.innerHTML=`<span class="eyebrow">01 / EXPLORE THE LIVING CELL</span><h1 class="intro-title">A small world. <br><em>A deeper look.</em></h1><p class="intro-copy">Turn the cell. Open a structure. Discover how the parts become a working whole.</p><div class="section-label"><span>THE STRUCTURES</span><span>09</span></div><div class="structure-list">${structures.map(s=>`<button class="structure-button" data-structure="${s.id}"><span class="dot" style="background:${s.color}"></span><span><strong>${s.short}</strong><small>${s.role}</small></span><span class="structure-arrow" aria-hidden="true">↗</span></button>`).join('')}</div><button class="tour-invite" data-action="start-tour"><span><strong>Start with a guided introduction</strong><small>A few stops. A whole new perspective.</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 8 5 4-5 4Z"/></svg></button>`;
 }
 function renderStructure(){
  const s=structures.find(s=>s.id===state.selected);if(!s)return;
@@ -143,7 +143,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.id==='condition-select')changeScenario(state.cargo,e.target.value);});
 document.addEventListener('input',e=>{if(e.target.id==='journey-progress'){togglePlay(false);syncProgress(Number(e.target.value)/1000,false);}});
-$('#labels-toggle').addEventListener('click',()=>{state.labels=!state.labels;cell?.setLabels(state.labels);$('#labels-toggle').classList.toggle('active',state.labels);$('#labels-toggle').setAttribute('aria-pressed',String(state.labels));});
+$('#labels-toggle').addEventListener('click',()=>{state.labels=!state.labels;cell?.setLabels(state.labels);$('#labels-toggle').classList.toggle('active',state.labels);$('#labels-toggle').setAttribute('aria-pressed',String(state.labels));notify(state.labels?'Labels shown':'Labels hidden');});
 $('#rotate-toggle').addEventListener('click',()=>{state.autoRotate=!state.autoRotate;cell?.setAutoRotate(state.autoRotate);$('#rotate-toggle').classList.toggle('active',state.autoRotate);$('#rotate-toggle').setAttribute('aria-pressed',String(state.autoRotate));});
 $('#reset-view').addEventListener('click',()=>{stopOrbit();state.view='cutaway';state.interior=false;cell?.reset();for(const b of document.querySelectorAll('[data-view]')){b.classList.toggle('active',b.dataset.view==='cutaway');b.setAttribute('aria-pressed',String(b.dataset.view==='cutaway'));}if(state.mode==='explore'){state.selected=null;state.tour=null;renderInspector();renderDock();}notify('View reset');});
 $('#fullscreen-toggle').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if($('#visual').requestFullscreen)await $('#visual').requestFullscreen();else notify('Fullscreen is unavailable in this browser');}catch{notify('Fullscreen is unavailable here');}});
